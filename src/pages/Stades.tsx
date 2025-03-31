@@ -6,28 +6,44 @@ import Footer from '@/components/Footer';
 import StadeCard from '@/components/StadeCard';
 import MatchCard from '@/components/MatchCard';
 // import { stades } from '@/data/stades';
-import {stades} from '../api';
+// import {stades, hotels, matches} from '../api';
 // import { matches } from '@/data/matches';
 // import { hotels } from '@/data/hotels';
 
-import { hotels } from '../api';
-import { matches } from '../api';
-import { useParams } from 'react-router-dom';
+
+import { useParams , Link} from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
 import StadeHotels from '@/components/StadeHotels';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchStades , fetchHotels, fetchMatches} from '../features/apiSlice';
+import { RootState, AppDispatch } from '../store';
+
+
 
 const StadeDetail = () => {
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { stades, hotels, matches, loading, error } = useSelector((state: RootState) => state.api);
   const { id } = useParams<{ id: string }>();
+
 
   const stade = stades.find(s => s.nom.toLowerCase().replace(/\s+/g, "-") === id);
   const stadeId = stade ? stade.id : null;
   const stadeMatches = stadeId ? matches.filter(m => m.stadeId === stadeId) : [];
   const stadeHotels = stadeId ? hotels.filter(h => h.stadeId === stadeId) : [];
   
+  useEffect(() => {
+    if (!stades.length) dispatch(fetchStades());
+    if (!hotels.length) dispatch(fetchHotels());
+    if (!matches.length) dispatch(fetchMatches());
+  }, [dispatch, stades.length, hotels.length, matches.length]);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
+
   if (!stade) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
@@ -143,9 +159,18 @@ const StadeDetail = () => {
 };
 
 const StadesList = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { stades, loading, error } = useSelector((state: RootState) => state.api);
+  
   const [filteredStades, setFilteredStades] = useState(stades);
   const [searchTerm, setSearchTerm] = useState('');
   
+
+
+  useEffect(() => {
+    if (!stades.length) dispatch(fetchStades()); 
+  }, [dispatch, stades.length]); // ✅ Prevents unnecessary API calls
+
   useEffect(() => {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -159,7 +184,11 @@ const StadesList = () => {
     } else {
       setFilteredStades(stades);
     }
-  }, [searchTerm]);
+  }, [searchTerm, stades]);
+
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
